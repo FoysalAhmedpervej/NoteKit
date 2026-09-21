@@ -1,0 +1,2652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>AI Text Compiler</title>
+
+<!-- Modern Arabic web fonts (free/open-source) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Amiri+Quran&family=Cairo:wght@200..1000&family=IBM+Plex+Sans+Arabic:wght@100..700&family=Noto+Kufi+Arabic:wght@100..900&family=Noto+Naskh+Arabic:wght@100..900&family=Noto+Sans+Arabic:wght@100..900&family=Scheherazade+New:wght@400;700&family=Tajawal:wght@200..900&display=swap" rel="stylesheet">
+
+<style>
+
+/* =========================================================
+   ROOT
+========================================================= */
+
+:root {
+    --bg: #eef1f5;
+    --panel: #ffffff;
+    --panel-2: #f7f8fa;
+    --text: #202124;
+    --muted: #687078;
+    --border: #d9dde3;
+    --accent: #2563eb;
+    --accent-soft: #eaf1ff;
+    --code: #f1f3f5;
+    --quote: #f5f7fa;
+    --shadow: 0 8px 25px rgba(0,0,0,.07);
+    --arabic-font-family: "Noto Naskh Arabic", "Amiri", "Noto Sans Arabic", sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+}
+
+body {
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    background: var(--bg);
+    color: var(--text);
+}
+
+/* =========================================================
+   APP
+========================================================= */
+
+.app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+
+    padding: 15px 22px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.logo {
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.logo span {
+    color: var(--accent);
+}
+
+.header-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+button,
+select,
+input {
+    font: inherit;
+}
+
+button {
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+
+    padding: 8px 12px;
+
+    border-radius: 7px;
+
+    cursor: pointer;
+
+    transition:
+        background .15s,
+        border .15s,
+        transform .1s;
+}
+
+button:hover {
+    background: var(--panel-2);
+}
+
+button:active {
+    transform: scale(.98);
+}
+
+button.primary {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+button.primary:hover {
+    opacity: .92;
+}
+
+/* =========================================================
+   MAIN LAYOUT
+========================================================= */
+
+.main {
+    flex: 1;
+
+    display: grid;
+
+    grid-template-columns:
+        minmax(300px, 1fr)
+        minmax(450px, 1.35fr);
+
+    min-height: calc(100vh - 65px);
+}
+
+/* =========================================================
+   LEFT PANEL
+========================================================= */
+
+.editor-panel {
+    background: var(--panel);
+
+    border-right: 1px solid var(--border);
+
+    display: flex;
+    flex-direction: column;
+
+    min-width: 0;
+}
+
+.panel-header {
+    padding: 14px 18px;
+
+    border-bottom: 1px solid var(--border);
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 10px;
+}
+
+.panel-title {
+    font-weight: 700;
+}
+
+textarea {
+    width: 100%;
+    flex: 1;
+
+    resize: none;
+
+    border: none;
+    outline: none;
+
+    padding: 22px;
+
+    font-family:
+        Consolas,
+        "Courier New",
+        monospace;
+
+    font-size: 15px;
+
+    line-height: 1.65;
+
+    color: var(--text);
+
+    background: var(--panel);
+
+    min-height: 500px;
+}
+
+/* =========================================================
+   RIGHT PANEL
+========================================================= */
+
+.preview-panel {
+    display: flex;
+    flex-direction: column;
+
+    min-width: 0;
+}
+
+.toolbar {
+    background: var(--panel);
+
+    border-bottom: 1px solid var(--border);
+
+    padding: 10px 14px;
+
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 8px;
+}
+
+.control {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.control label {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+select,
+input[type="number"] {
+    border: 1px solid var(--border);
+
+    background: var(--panel);
+
+    border-radius: 6px;
+
+    padding: 6px 8px;
+
+    color: var(--text);
+
+    outline: none;
+}
+
+input[type="range"] {
+    width: 110px;
+}
+
+.preview-area {
+    flex: 1;
+
+    overflow: auto;
+
+    padding: 30px;
+}
+
+/* =========================================================
+   DOCUMENT
+========================================================= */
+
+.document {
+    width: min(100%, 900px);
+
+    margin: 0 auto;
+
+    background: var(--panel);
+
+    padding: 48px 55px;
+
+    box-shadow: var(--shadow);
+
+    border-radius: 4px;
+
+    font-size: 18px;
+
+    line-height: 1.75;
+
+    overflow-wrap: break-word;
+}
+
+/* =========================================================
+   TYPOGRAPHY
+========================================================= */
+
+.document h1,
+.document h2,
+.document h3,
+.document h4,
+.document h5,
+.document h6 {
+    line-height: 1.25;
+
+    margin-top: 1.5em;
+    margin-bottom: .6em;
+
+    font-weight: 800;
+}
+
+.document h1 {
+    font-size: 2em;
+}
+
+.document h2 {
+    font-size: 1.65em;
+}
+
+.document h3 {
+    font-size: 1.4em;
+}
+
+.document h4 {
+    font-size: 1.2em;
+}
+
+.document h5 {
+    font-size: 1.05em;
+}
+
+.document h6 {
+    font-size: .95em;
+}
+
+.document p {
+    margin: .8em 0;
+}
+
+.document strong {
+    font-weight: 800;
+}
+
+.document em {
+    font-style: italic;
+}
+
+.document del {
+    opacity: .7;
+}
+
+.document a {
+    color: var(--accent);
+}
+
+.document img {
+    max-width: 100%;
+    height: auto;
+
+    display: block;
+
+    margin: 22px auto;
+
+    border-radius: 6px;
+}
+
+.document ul,
+.document ol {
+    padding-left: 1.7em;
+
+    margin: .8em 0;
+}
+
+.document li {
+    margin: .25em 0;
+}
+
+/* =========================================================
+   BLOCKQUOTE
+========================================================= */
+
+.document blockquote {
+    margin: 1em 0;
+
+    padding: 12px 18px;
+
+    border-left: 4px solid var(--accent);
+
+    background: var(--quote);
+
+    color: var(--muted);
+}
+
+/* =========================================================
+   CODE
+========================================================= */
+
+.document code {
+    font-family:
+        Consolas,
+        "Courier New",
+        monospace;
+
+    background: var(--code);
+
+    padding: 2px 6px;
+
+    border-radius: 4px;
+
+    font-size: .9em;
+}
+
+.document pre {
+    background: #15181d;
+
+    color: #f4f4f4;
+
+    padding: 18px;
+
+    border-radius: 8px;
+
+    overflow-x: auto;
+
+    line-height: 1.55;
+}
+
+.document pre code {
+    background: transparent;
+
+    padding: 0;
+
+    color: inherit;
+}
+
+/* =========================================================
+   HR
+========================================================= */
+
+.document hr {
+    border: 0;
+
+    border-top: 1px solid var(--border);
+
+    margin: 2em 0;
+}
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.document table {
+    width: 100%;
+
+    border-collapse: collapse;
+
+    margin: 22px 0;
+
+    font-size: .95em;
+
+    overflow: hidden;
+}
+
+.document th,
+.document td {
+    border: 1px solid var(--border);
+
+    padding: 9px 12px;
+
+    text-align: left;
+
+    vertical-align: top;
+}
+
+.document th {
+    background: var(--panel-2);
+
+    font-weight: 800;
+}
+
+.document tr:nth-child(even) td {
+    background: rgba(0,0,0,.018);
+}
+
+/* =========================================================
+   CHECKBOX
+========================================================= */
+
+.task-list {
+    list-style: none;
+
+    padding-left: 0 !important;
+}
+
+.task-list input {
+    margin-right: 7px;
+}
+
+/* =========================================================
+   HTML CONTENT
+========================================================= */
+
+.raw-html {
+    width: 100%;
+}
+
+/* =========================================================
+   ARABIC TEXT
+========================================================= */
+
+.arabic-run {
+    direction: rtl;
+    unicode-bidi: isolate;
+
+    font-family: var(--arabic-font-family, "Noto Naskh Arabic", "Amiri", "Noto Sans Arabic", sans-serif);
+
+    font-size: var(--arabic-font-size, inherit);
+
+    line-height: 2.05;
+
+    /* Preserve Arabic harakat/combining marks and their positioning. */
+    font-feature-settings: "ccmp" 1, "mark" 1, "mkmk" 1, "rlig" 1;
+    font-kerning: normal;
+    font-variant-ligatures: contextual common-ligatures;
+    text-rendering: optimizeLegibility;
+}
+
+.control.hidden {
+    display: none !important;
+}
+
+/* =========================================================
+   FULLSCREEN (in-browser, not device fullscreen)
+========================================================= */
+
+.document.pseudo-fullscreen {
+    position: fixed;
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+    max-width: none;
+
+    margin: 0;
+
+    z-index: 9999;
+
+    overflow: auto;
+
+    background: var(--panel);
+    color: var(--text);
+
+    box-shadow: none;
+    border-radius: 0;
+}
+
+.fullscreen-bar {
+    position: fixed;
+
+    top: 16px;
+    right: 24px;
+
+    z-index: 10000;
+
+    display: flex;
+    gap: 8px;
+}
+
+.fullscreen-bar.hidden {
+    display: none;
+}
+
+.fullscreen-bar button {
+    box-shadow: var(--shadow);
+}
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.status {
+    padding: 7px 14px;
+
+    border-top: 1px solid var(--border);
+
+    background: var(--panel);
+
+    color: var(--muted);
+
+    font-size: 12px;
+
+    text-align: right;
+}
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+body.dark {
+    --bg: #111318;
+    --panel: #181b20;
+    --panel-2: #20242b;
+    --text: #e9edf2;
+    --muted: #9aa3ad;
+    --border: #30353d;
+    --accent: #5b8cff;
+    --accent-soft: #202d4d;
+    --code: #242931;
+    --quote: #20242b;
+    --shadow: 0 8px 30px rgba(0,0,0,.3);
+}
+
+body.dark .document pre {
+    background: #0c0e11;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+
+    .main {
+        grid-template-columns: 1fr;
+    }
+
+    .editor-panel {
+        min-height: 45vh;
+
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    textarea {
+        min-height: 350px;
+    }
+
+    .document {
+        padding: 30px 24px;
+    }
+
+}
+
+@media (max-width: 600px) {
+
+    header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .header-buttons {
+        justify-content: flex-end;
+    }
+
+    .preview-area {
+        padding: 12px;
+    }
+
+    .document {
+        padding: 24px 18px;
+    }
+
+}
+
+/* =========================================================
+   PRINT
+========================================================= */
+
+@media print {
+
+    body {
+        background: white !important;
+    }
+
+    header,
+    .editor-panel,
+    .toolbar,
+    .status,
+    .fullscreen-bar {
+        display: none !important;
+    }
+
+    .main {
+        display: block;
+    }
+
+    .preview-panel {
+        display: block;
+    }
+
+    .preview-area {
+        padding: 0;
+        overflow: visible;
+    }
+
+    .document {
+        width: 100%;
+        max-width: none;
+
+        box-shadow: none;
+
+        padding: 0;
+
+        border-radius: 0;
+    }
+
+}
+
+
+/* =========================================================
+   ROUTED FULLSCREEN
+   Works with both a web server (/fullscreen) and local file://
+========================================================= */
+body.route-fullscreen {
+    overflow: hidden;
+}
+
+body.route-fullscreen header,
+body.route-fullscreen .editor-panel,
+body.route-fullscreen .toolbar,
+body.route-fullscreen .status {
+    display: none !important;
+}
+
+body.route-fullscreen .app,
+body.route-fullscreen .main,
+body.route-fullscreen .preview-panel,
+body.route-fullscreen .preview-area {
+    width: 100%;
+    min-height: 100vh;
+    height: 100vh;
+}
+
+body.route-fullscreen .main {
+    display: block;
+}
+
+body.route-fullscreen .preview-panel {
+    display: flex;
+    flex-direction: column;
+}
+
+body.route-fullscreen .preview-area {
+    padding: 0;
+    overflow: auto;
+}
+
+body.route-fullscreen .document {
+    width: min(100%, var(--saved-content-width, 900px));
+    max-width: none;
+    min-height: 100vh;
+    margin: 0 auto;
+    padding: 55px 70px 80px;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+body.route-fullscreen .fullscreen-bar {
+    display: flex !important;
+}
+
+body.route-fullscreen .fullscreen-bar.hidden {
+    display: none !important;
+}
+
+@media (max-width: 700px) {
+    body.route-fullscreen .document {
+        padding: 45px 22px 70px;
+    }
+}
+
+</style>
+</head>
+
+
+<body>
+
+<div class="app">
+
+<!-- =====================================================
+     HEADER
+===================================================== -->
+
+<header>
+
+    <div class="logo">
+        AI <span>Text Compiler</span>
+    </div>
+
+    <div class="header-buttons">
+
+        <button onclick="pasteText()">
+            Paste
+        </button>
+
+        <button onclick="clearText()">
+            Clear
+        </button>
+
+        <button onclick="copyRendered()">
+            Copy
+        </button>
+
+        <button onclick="downloadHTML()">
+            Download HTML
+        </button>
+
+        <button onclick="window.print()">
+            Print / PDF
+        </button>
+
+        <button
+            id="fullscreenBtn"
+            onclick="toggleFullscreen()">
+            Fullscreen
+        </button>
+
+        <button
+            class="primary"
+            onclick="toggleDark()">
+            Dark
+        </button>
+
+    </div>
+
+</header>
+
+
+<!-- =====================================================
+     MAIN
+===================================================== -->
+
+<div class="main">
+
+
+<!-- =====================================================
+     EDITOR
+===================================================== -->
+
+<section class="editor-panel">
+
+    <div class="panel-header">
+
+        <div class="panel-title">
+            AI / Markdown / HTML Input
+        </div>
+
+        <button onclick="compile()">
+            Compile
+        </button>
+
+    </div>
+
+
+<textarea
+id="input"
+spellcheck="false"
+placeholder="Paste your AI-generated text here...
+
+Examples:
+
+# Main Heading
+
+## Section
+
+This is **bold** and *italic*.
+
+- Item one
+- Item two
+
+| Name | Meaning |
+|---|---|
+| Shams | Sun |
+| Qamar | Moon |
+
+> Important note
+
+<div>
+    This is HTML content.
+</div>
+"></textarea>
+
+
+</section>
+
+
+<!-- =====================================================
+     PREVIEW
+===================================================== -->
+
+<section class="preview-panel">
+
+
+<!-- =====================================================
+     TOOLBAR
+===================================================== -->
+
+<div class="toolbar">
+
+
+    <div class="control">
+
+        <label>
+            Font
+        </label>
+
+        <select
+            id="fontFamily"
+            onchange="changeFont()">
+
+            <option value="Arial, Helvetica, sans-serif">
+                Arial
+            </option>
+
+            <option value="Georgia, serif">
+                Georgia
+            </option>
+
+            <option value="'Times New Roman', serif">
+                Times New Roman
+            </option>
+
+            <option value="'Trebuchet MS', sans-serif">
+                Trebuchet
+            </option>
+
+            <option value="'Verdana', sans-serif">
+                Verdana
+            </option>
+
+            <option value="'Noto Sans', sans-serif">
+                Noto Sans
+            </option>
+
+            <option value="'Noto Serif', serif">
+                Noto Serif
+            </option>
+
+            <option value="'SolaimanLipi', serif">
+                SolaimanLipi
+            </option>
+
+            <option value="'Siyam Rupali', sans-serif">
+                Siyam Rupali
+            </option>
+
+        </select>
+
+    </div>
+
+
+    <div class="control">
+
+        <label>
+            Size
+        </label>
+
+        <input
+            id="fontSize"
+            type="range"
+            min="12"
+            max="40"
+            value="18"
+            oninput="changeFontSize()">
+
+        <span id="fontSizeValue">
+            18px
+        </span>
+
+    </div>
+
+
+    <div class="control">
+
+        <label>
+            Line
+        </label>
+
+        <input
+            id="lineHeight"
+            type="range"
+            min="1"
+            max="2.5"
+            step=".05"
+            value="1.75"
+            oninput="changeLineHeight()">
+
+    </div>
+
+
+    <button onclick="toggleBold()">
+        Bold / Normal
+    </button>
+
+
+    <button onclick="toggleItalic()">
+        Italic / Normal
+    </button>
+
+
+    <div class="control">
+
+        <label>
+            Width
+        </label>
+
+        <input
+            id="contentWidth"
+            type="range"
+            min="500"
+            max="1200"
+            value="900"
+            oninput="changeWidth()">
+
+    </div>
+
+
+    <div
+        id="arabicSizeControl"
+        class="control hidden">
+
+        <label>
+            Arabic Size
+        </label>
+
+        <input
+            id="arabicFontSize"
+            type="range"
+            min="12"
+            max="60"
+            value="22"
+            oninput="changeArabicFontSize()">
+
+        <span id="arabicFontSizeValue">
+            22px
+        </span>
+
+    </div>
+
+
+    <div
+        id="arabicFontControl"
+        class="control hidden">
+
+        <label for="arabicFontFamily">
+            Arabic Font
+        </label>
+
+        <select
+            id="arabicFontFamily"
+            onchange="changeArabicFontFamily()">
+            <option value="Noto Naskh Arabic">Noto Naskh Arabic — Harakat</option>
+            <option value="Amiri">Amiri — Classical & Harakat</option>
+            <option value="Amiri Quran">Amiri Quran — Quranic</option>
+            <option value="Scheherazade New">Scheherazade New — Harakat</option>
+            <option value="Noto Sans Arabic">Noto Sans Arabic — Modern</option>
+            <option value="IBM Plex Sans Arabic">IBM Plex Sans Arabic — Modern</option>
+            <option value="Tajawal">Tajawal — Modern</option>
+            <option value="Cairo">Cairo — Modern</option>
+            <option value="Noto Kufi Arabic">Noto Kufi Arabic — Display</option>
+        </select>
+
+    </div>
+
+
+</div>
+
+
+<!-- =====================================================
+     PREVIEW AREA
+===================================================== -->
+
+<div class="preview-area">
+
+    <article
+        id="document"
+        class="document">
+
+        <p style="color:#888">
+            Your compiled document will appear here.
+        </p>
+
+    </article>
+
+
+    <div
+        id="fullscreenBar"
+        class="fullscreen-bar hidden">
+
+        <button onclick="window.print()">
+            Print
+        </button>
+
+        <button
+            class="primary"
+            onclick="goHome()">
+            Home
+        </button>
+
+    </div>
+
+</div>
+
+
+<div
+    id="status"
+    class="status">
+
+    Ready
+
+</div>
+
+
+</section>
+
+</div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   ELEMENTS
+========================================================= */
+
+const input =
+    document.getElementById("input");
+
+const documentArea =
+    document.getElementById("document");
+
+const status =
+    document.getElementById("status");
+
+
+/* =========================================================
+   ESCAPE HTML
+========================================================= */
+
+function escapeHTML(text) {
+
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+}
+
+
+/* =========================================================
+   CHECK IF HTML
+========================================================= */
+
+function containsHTML(text) {
+
+    return /<([a-z][\w-]*)\b[^>]*>/i.test(text);
+
+}
+
+
+/* =========================================================
+   HTML SUPPORT
+   HTML fragments such as <div>...</div>, <table>...</table>
+   or <svg>...</svg> are rendered by the browser as real
+   elements (no full <html> document needed).
+========================================================= */
+
+const KNOWN_HTML_TAGS = new Set((
+    "a abbr address article aside audio b bdi bdo blockquote br button canvas caption center cite code col colgroup " +
+    "data dd del details dfn dialog div dl dt em embed fieldset figcaption figure font footer form " +
+    "h1 h2 h3 h4 h5 h6 header hgroup hr i iframe img input ins kbd label legend li main map mark menu meter nav " +
+    "noscript object ol optgroup option output p param picture pre progress q rp rt ruby s samp script section select " +
+    "small source span strike strong style sub summary sup table tbody td template textarea tfoot th thead time tr track " +
+    "u ul var video wbr " +
+    "svg g path circle ellipse line polyline polygon rect text tspan defs use symbol marker mask pattern " +
+    "lineargradient radialgradient stop clippath image foreignobject"
+).split(" "));
+
+/* Tags that start a multi-line HTML block when they open a line. */
+const BLOCK_HTML_TAGS = new Set((
+    "address article aside audio blockquote button canvas center details dialog div dl fieldset figure footer form " +
+    "h1 h2 h3 h4 h5 h6 header hgroup hr iframe main menu nav noscript object ol p picture pre script section select " +
+    "style summary svg table template textarea ul video"
+).split(" "));
+
+const VOID_HTML_TAGS = new Set(
+    "area base br col embed hr img input link meta param source track wbr".split(" ")
+);
+
+/* Elements whose content is raw text (tags inside are not tags). */
+const RAW_TEXT_TAGS = new Set(["script", "style", "textarea"]);
+
+function isKnownTag(name) {
+    name = name.toLowerCase();
+    return KNOWN_HTML_TAGS.has(name) || name.includes("-");
+}
+
+/* One HTML comment or one (open / close / self-closing) tag. */
+const HTML_TOKEN_SOURCE =
+    "<!--[\\s\\S]*?-->|<\\/?([a-zA-Z][\\w:-]*)(?:\\s(?:\"[^\"]*\"|'[^']*'|[^'\">])*)?\\/?>";
+
+
+/* Does this line open an HTML block (e.g. "<div>", "<table class=..>")? */
+
+function isHtmlBlockStart(line) {
+
+    if (/^\s*<!--/.test(line)) return true;
+
+    const m = line.match(/^\s*<\/?([a-zA-Z][\w:-]*)/);
+
+    if (!m) return false;
+
+    const name = m[1].toLowerCase();
+
+    return BLOCK_HTML_TAGS.has(name) || name.includes("-");
+
+}
+
+
+/* Find where the HTML block starting at `from` ends.
+   Returns the index just after the closing tag, or -1
+   if the block is never closed. Handles nesting. */
+
+function scanHtmlBlockEnd(text, from) {
+
+    const re = new RegExp(HTML_TOKEN_SOURCE, "g");
+
+    re.lastIndex = from;
+
+    const stack = [];
+
+    let first = true;
+
+    let m;
+
+    while ((m = re.exec(text)) !== null) {
+
+        /* The first tag must sit at the very start of the block. */
+
+        if (first) {
+            first = false;
+            if (text.slice(from, m.index).trim() !== "") return -1;
+        }
+
+        /* Comment */
+
+        if (m[0].startsWith("<!--")) {
+            if (!stack.length) return re.lastIndex;
+            continue;
+        }
+
+        const name = m[1].toLowerCase();
+        const closing = m[0].charAt(1) === "/";
+        const selfClosing = /\/>$/.test(m[0]);
+
+        if (closing) {
+
+            const idx = stack.lastIndexOf(name);
+
+            if (idx !== -1) stack.length = idx;
+
+            if (!stack.length) return re.lastIndex;
+
+            continue;
+        }
+
+        if (VOID_HTML_TAGS.has(name) || selfClosing) {
+            if (!stack.length) return re.lastIndex;
+            continue;
+        }
+
+        if (RAW_TEXT_TAGS.has(name)) {
+
+            const closeRe =
+                new RegExp("<\\/" + name + "\\s*>", "ig");
+
+            closeRe.lastIndex = re.lastIndex;
+
+            const c = closeRe.exec(text);
+
+            if (!c) return -1;
+
+            re.lastIndex = closeRe.lastIndex;
+
+            if (!stack.length) return re.lastIndex;
+
+            continue;
+        }
+
+        stack.push(name);
+
+    }
+
+    return -1;
+
+}
+
+
+/* Collect the lines of an HTML block. If the block is never
+   closed, it ends at the next blank line instead. */
+
+function takeHtmlBlock(lines, start, ctx) {
+
+    if (ctx.text === null) {
+
+        ctx.text = lines.join("\n");
+        ctx.offsets = [];
+
+        let pos = 0;
+
+        for (let k = 0; k < lines.length; k++) {
+            ctx.offsets.push(pos);
+            pos += lines[k].length + 1;
+        }
+
+    }
+
+    const endPos =
+        scanHtmlBlockEnd(ctx.text, ctx.offsets[start]);
+
+    let endLine;
+
+    if (endPos !== -1) {
+
+        const target = endPos - 1;
+
+        let lo = start;
+        let hi = lines.length - 1;
+
+        while (lo < hi) {
+
+            const mid = (lo + hi + 1) >> 1;
+
+            if (ctx.offsets[mid] <= target) lo = mid;
+            else hi = mid - 1;
+
+        }
+
+        endLine = lo;
+
+    } else {
+
+        endLine = start;
+
+        while (
+            endLine + 1 < lines.length &&
+            lines[endLine + 1].trim()
+        ) {
+            endLine++;
+        }
+
+    }
+
+    return {
+        html: lines.slice(start, endLine + 1).join("\n"),
+        next: endLine + 1
+    };
+
+}
+
+
+/* A complete HTML document pasted in: keep its body + head styles. */
+
+function compileFullDocument(text) {
+
+    const doc =
+        new DOMParser().parseFromString(text, "text/html");
+
+    let styles = "";
+
+    doc.head.querySelectorAll("style").forEach(function (el) {
+        styles += el.outerHTML;
+    });
+
+    return styles +
+        '<div class="raw-html">' +
+        doc.body.innerHTML +
+        "</div>";
+
+}
+
+
+/* Make pasted HTML safe to show: no scripts, no inline event
+   handlers, no javascript: links. Everything else is kept. */
+
+function sanitizeFragment(root) {
+
+    root.querySelectorAll("script").forEach(function (el) {
+        el.remove();
+    });
+
+    root.querySelectorAll("*").forEach(function (el) {
+
+        Array.from(el.attributes).forEach(function (attr) {
+
+            const name = attr.name.toLowerCase();
+
+            const value =
+                attr.value
+                    .replace(/[\u0000-\u0020]+/g, "")
+                    .toLowerCase();
+
+            if (
+                name.startsWith("on") ||
+                name === "srcdoc" ||
+                (
+                    ["href", "src", "xlink:href", "action", "formaction"]
+                        .includes(name) &&
+                    /^(javascript:|vbscript:|data:text\/html)/.test(value)
+                )
+            ) {
+                el.removeAttribute(attr.name);
+            }
+
+        });
+
+    });
+
+}
+
+
+/* Put compiled HTML into the preview using an inert <template>
+   so nothing runs or loads before it has been sanitized. */
+
+function renderCompiled(html) {
+
+    const tpl = document.createElement("template");
+
+    tpl.innerHTML = html;
+
+    sanitizeFragment(tpl.content);
+
+    documentArea.innerHTML = "";
+
+    documentArea.appendChild(tpl.content);
+
+}
+
+
+/* =========================================================
+   INLINE MARKDOWN
+========================================================= */
+
+function parseInline(text) {
+
+    /* Protected pieces (inline code + real HTML tags) are swapped
+       for placeholders so Markdown rules can't damage them. */
+
+    const stash = [];
+
+    function hold(html) {
+        stash.push(html);
+        return "\uE000" + (stash.length - 1) + "\uE001";
+    }
+
+
+    /* Inline code first, so tags inside `code` stay as text */
+
+    text = text.replace(
+        /`([^`]+)`/g,
+        function (_, code) {
+            return hold("<code>" + escapeHTML(code) + "</code>");
+        }
+    );
+
+
+    /* Inline HTML: <b>, <span style="..">, <br>, <img ..>, comments */
+
+    text = text.replace(
+        new RegExp(HTML_TOKEN_SOURCE, "g"),
+        function (token, name) {
+
+            if (token.startsWith("<!--")) return hold(token);
+
+            return isKnownTag(name) ? hold(token) : token;
+
+        }
+    );
+
+
+    text = escapeHTML(text);
+
+
+    /* Images */
+
+    text = text.replace(
+        /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g,
+        '<img src="$2" alt="$1" title="$3">'
+    );
+
+
+    /* Links */
+
+    text = text.replace(
+        /\[([^\]]+)\]\(([^)]+)\)/g,
+        '<a href="$2" target="_blank">$1</a>'
+    );
+
+
+    /* Bold */
+
+    text = text.replace(
+        /\*\*(.+?)\*\*/g,
+        "<strong>$1</strong>"
+    );
+
+
+    text = text.replace(
+        /__(.+?)__/g,
+        "<strong>$1</strong>"
+    );
+
+
+    /* Italic */
+
+    text = text.replace(
+        /(?<!\*)\*([^*\n]+)\*(?!\*)/g,
+        "<em>$1</em>"
+    );
+
+
+    text = text.replace(
+        /(?<!_)_([^_\n]+)_(?!_)/g,
+        "<em>$1</em>"
+    );
+
+
+    /* Strike */
+
+    text = text.replace(
+        /~~(.+?)~~/g,
+        "<del>$1</del>"
+    );
+
+
+    /* Restore protected pieces */
+
+    for (let pass = 0; pass < 3 && text.indexOf("\uE000") !== -1; pass++) {
+
+        text = text.replace(
+            /\uE000(\d+)\uE001/g,
+            function (_, n) {
+                return stash[Number(n)];
+            }
+        );
+
+    }
+
+
+    return text;
+
+}
+
+
+/* =========================================================
+   TABLE PARSER
+========================================================= */
+
+function parseTable(lines, start) {
+
+    const header =
+        lines[start]
+            .trim()
+            .split("|")
+            .slice(1, -1);
+
+    const separator =
+        lines[start + 1];
+
+    if (
+        !separator ||
+        !/^\s*\|?[\s:-]+(\|[\s:-]+)+\|?\s*$/
+            .test(separator)
+    ) {
+        return null;
+    }
+
+
+    let html = "<table><thead><tr>";
+
+    header.forEach(cell => {
+
+        html +=
+            "<th>" +
+            parseInline(cell.trim()) +
+            "</th>";
+
+    });
+
+    html += "</tr></thead><tbody>";
+
+
+    let i = start + 2;
+
+
+    while (
+        i < lines.length &&
+        lines[i].trim().startsWith("|")
+    ) {
+
+        const cells =
+            lines[i]
+                .trim()
+                .split("|")
+                .slice(1, -1);
+
+
+        html += "<tr>";
+
+
+        cells.forEach(cell => {
+
+            html +=
+                "<td>" +
+                parseInline(cell.trim()) +
+                "</td>";
+
+        });
+
+
+        html += "</tr>";
+
+        i++;
+
+    }
+
+
+    html += "</tbody></table>";
+
+
+    return {
+        html,
+        next: i
+    };
+
+}
+
+
+/* =========================================================
+   MARKDOWN COMPILER
+========================================================= */
+
+function compileMarkdown(text) {
+
+    const lines =
+        text.replace(/\r/g, "").split("\n");
+
+    const htmlCtx = { text: null, offsets: null };
+
+    let html = "";
+
+    let i = 0;
+
+    while (i < lines.length) {
+
+        let line = lines[i];
+
+
+        /* Blank */
+
+        if (!line.trim()) {
+
+            i++;
+
+            continue;
+
+        }
+
+
+        /* Code block */
+
+        if (line.trim().startsWith("```")) {
+
+            const language =
+                line.trim().substring(3).trim();
+
+            i++;
+
+            let code = "";
+
+            while (
+                i < lines.length &&
+                !lines[i].trim().startsWith("```")
+            ) {
+
+                code += lines[i] + "\n";
+
+                i++;
+
+            }
+
+            i++;
+
+            html +=
+                "<pre><code class=\"language-" +
+                escapeHTML(language) +
+                "\">" +
+                escapeHTML(code) +
+                "</code></pre>";
+
+            continue;
+
+        }
+
+
+        /* Table */
+
+        if (
+            line.trim().startsWith("|") &&
+            i + 1 < lines.length
+        ) {
+
+            const table =
+                parseTable(lines, i);
+
+            if (table) {
+
+                html += table.html;
+
+                i = table.next;
+
+                continue;
+
+            }
+
+        }
+
+
+        /* Heading */
+
+        const heading =
+            line.match(/^(#{1,6})\s+(.+)$/);
+
+        if (heading) {
+
+            const level =
+                heading[1].length;
+
+            html +=
+                `<h${level}>${parseInline(heading[2])}</h${level}>`;
+
+            i++;
+
+            continue;
+
+        }
+
+
+        /* Horizontal rule */
+
+        if (
+            /^\s*(\*\s*){3,}$/.test(line) ||
+            /^\s*(-\s*){3,}$/.test(line) ||
+            /^\s*_{3,}\s*$/.test(line)
+        ) {
+
+            html += "<hr>";
+
+            i++;
+
+            continue;
+
+        }
+
+
+        /* Blockquote */
+
+        if (line.trim().startsWith(">")) {
+
+            let quote = "";
+
+            while (
+                i < lines.length &&
+                lines[i].trim().startsWith(">")
+            ) {
+
+                quote +=
+                    lines[i]
+                        .trim()
+                        .replace(/^>\s?/, "") +
+                    "\n";
+
+                i++;
+
+            }
+
+            html +=
+                "<blockquote>" +
+                compileMarkdown(quote) +
+                "</blockquote>";
+
+            continue;
+
+        }
+
+
+        /* Unordered list */
+
+        if (
+            /^\s*[-*+]\s+/.test(line)
+        ) {
+
+            html += "<ul>";
+
+            while (
+                i < lines.length &&
+                /^\s*[-*+]\s+/.test(lines[i])
+            ) {
+
+                let item =
+                    lines[i]
+                        .replace(/^\s*[-*+]\s+/, "");
+
+
+                const task =
+                    item.match(
+                        /^\[([ xX])\]\s+(.+)$/
+                    );
+
+
+                if (task) {
+
+                    html +=
+                        `<li>
+                            <input type="checkbox"
+                            ${task[1].toLowerCase() === "x"
+                                ? "checked"
+                                : ""}>
+                            ${parseInline(task[2])}
+                        </li>`;
+
+                } else {
+
+                    html +=
+                        "<li>" +
+                        parseInline(item) +
+                        "</li>";
+
+                }
+
+                i++;
+
+            }
+
+            html += "</ul>";
+
+            continue;
+
+        }
+
+
+        /* Ordered list */
+
+        if (
+            /^\s*\d+\.\s+/.test(line)
+        ) {
+
+            html += "<ol>";
+
+            while (
+                i < lines.length &&
+                /^\s*\d+\.\s+/.test(lines[i])
+            ) {
+
+                const item =
+                    lines[i]
+                        .replace(/^\s*\d+\.\s+/, "");
+
+                html +=
+                    "<li>" +
+                    parseInline(item) +
+                    "</li>";
+
+                i++;
+
+            }
+
+            html += "</ol>";
+
+            continue;
+
+        }
+
+
+        /* HTML block: <div>...</div>, <table>...</table>, <svg>...
+           The whole block (nested, multi-line, with blank lines)
+           is handed to the browser to render as real elements. */
+
+        if (isHtmlBlockStart(line)) {
+
+            const taken =
+                takeHtmlBlock(lines, i, htmlCtx);
+
+            html +=
+                `<div class="raw-html">${taken.html}</div>`;
+
+            i = taken.next;
+
+            continue;
+
+        }
+
+
+        /* Normal paragraph */
+
+        let paragraph = line;
+
+        i++;
+
+
+        while (
+            i < lines.length &&
+            lines[i].trim() &&
+            !/^#{1,6}\s+/.test(lines[i]) &&
+            !/^\s*[-*+]\s+/.test(lines[i]) &&
+            !/^\s*\d+\.\s+/.test(lines[i]) &&
+            !lines[i].trim().startsWith(">") &&
+            !lines[i].trim().startsWith("```") &&
+            !lines[i].trim().startsWith("|") &&
+            !isHtmlBlockStart(lines[i])
+        ) {
+
+            paragraph +=
+                " " + lines[i].trim();
+
+            i++;
+
+        }
+
+
+        html +=
+            "<p>" +
+            parseInline(paragraph) +
+            "</p>";
+
+    }
+
+
+    return html;
+
+}
+
+
+/* =========================================================
+   COMPILE
+========================================================= */
+
+function compile() {
+
+    const text =
+        input.value.trim();
+
+
+    if (!text) {
+
+        documentArea.innerHTML =
+            "<p style='color:#888'>Nothing to compile.</p>";
+
+        status.textContent =
+            "Empty";
+
+        return;
+
+    }
+
+
+    renderCompiled(
+        /^\s*(<!doctype\s+html|<html[\s>])/i.test(text)
+            ? compileFullDocument(text)
+            : compileMarkdown(text)
+    );
+
+
+    const hasArabic =
+        processArabicRuns(documentArea);
+
+    updateArabicControl(hasArabic);
+
+
+    status.textContent =
+        "Compiled • " +
+        text.length +
+        " characters" +
+        (hasArabic ? " • Arabic detected" : "");
+
+}
+
+
+/* =========================================================
+   ARABIC DETECTION
+========================================================= */
+
+const ARABIC_CHAR =
+    "\\u0600-\\u06FF\\u0750-\\u077F\\u08A0-\\u08FF\\uFB50-\\uFDFF\\uFE70-\\uFEFF";
+
+const arabicTestRegex =
+    new RegExp("[" + ARABIC_CHAR + "]");
+
+const arabicRunRegex =
+    new RegExp(
+        "[" + ARABIC_CHAR + "]" +
+        "[" + ARABIC_CHAR +
+        "\\u060C\\u061B\\u061F\\s0-9.,!?():;\"'\\-]*",
+        "g"
+    );
+
+
+function processArabicRuns(root) {
+
+    const walker =
+        document.createTreeWalker(
+            root,
+            NodeFilter.SHOW_TEXT,
+            null
+        );
+
+    const nodesToProcess = [];
+
+    let node;
+
+    while (node = walker.nextNode()) {
+
+        if (
+            node.parentNode &&
+            node.parentNode.classList &&
+            node.parentNode.classList.contains("arabic-run")
+        ) {
+            continue;
+        }
+
+        if (
+            node.parentNode &&
+            /^(STYLE|SCRIPT|TEXTAREA)$/.test(node.parentNode.nodeName)
+        ) {
+            continue;
+        }
+
+        if (arabicTestRegex.test(node.nodeValue)) {
+            nodesToProcess.push(node);
+        }
+
+    }
+
+
+    let found = false;
+
+    nodesToProcess.forEach(function (textNode) {
+
+        const text = textNode.nodeValue.normalize("NFC");
+
+        const frag =
+            document.createDocumentFragment();
+
+        let lastIndex = 0;
+
+        let match;
+
+        arabicRunRegex.lastIndex = 0;
+
+        while ((match = arabicRunRegex.exec(text)) !== null) {
+
+            if (match.index > lastIndex) {
+                frag.appendChild(
+                    document.createTextNode(
+                        text.slice(lastIndex, match.index)
+                    )
+                );
+            }
+
+            const span =
+                document.createElement("span");
+
+            span.className = "arabic-run";
+            span.textContent = match[0];
+
+            frag.appendChild(span);
+
+            lastIndex = arabicRunRegex.lastIndex;
+
+            found = true;
+
+        }
+
+        if (lastIndex < text.length) {
+            frag.appendChild(
+                document.createTextNode(
+                    text.slice(lastIndex)
+                )
+            );
+        }
+
+        textNode.parentNode.replaceChild(frag, textNode);
+
+    });
+
+    return found;
+
+}
+
+
+function updateArabicControl(hasArabic) {
+
+    const control =
+        document.getElementById("arabicSizeControl");
+
+    const fontControl =
+        document.getElementById("arabicFontControl");
+
+    if (hasArabic) {
+        control.classList.remove("hidden");
+        fontControl.classList.remove("hidden");
+    } else {
+        control.classList.add("hidden");
+        fontControl.classList.add("hidden");
+    }
+
+}
+
+
+function changeArabicFontFamily() {
+
+    const value =
+        document.getElementById("arabicFontFamily").value;
+
+    documentArea.style.setProperty(
+        "--arabic-font-family",
+        '"' + value + '", sans-serif'
+    );
+
+    saveSettings();
+}
+
+
+function changeArabicFontSize() {
+
+    const value =
+        document.getElementById("arabicFontSize").value;
+
+    documentArea.style.setProperty(
+        "--arabic-font-size",
+        value + "px"
+    );
+
+    document.getElementById("arabicFontSizeValue")
+        .textContent =
+        value + "px";
+
+    saveSettings();
+}
+
+
+/* =========================================================
+   FULLSCREEN
+========================================================= */
+
+/* =========================================================
+   ROUTING + SETTINGS PERSISTENCE
+========================================================= */
+
+const SETTINGS_KEY = "aiTextCompilerSettings";
+
+function saveSettings() {
+    try {
+        const settings = {
+            fontFamily: document.getElementById("fontFamily").value,
+            fontSize: document.getElementById("fontSize").value,
+            lineHeight: document.getElementById("lineHeight").value,
+            contentWidth: document.getElementById("contentWidth").value,
+            arabicFontSize: document.getElementById("arabicFontSize").value,
+            arabicFontFamily: document.getElementById("arabicFontFamily").value,
+            dark: document.body.classList.contains("dark")
+        };
+
+        localStorage.setItem(
+            SETTINGS_KEY,
+            JSON.stringify(settings)
+        );
+
+        documentArea.style.setProperty(
+            "--saved-content-width",
+            settings.contentWidth + "px"
+        );
+    } catch (e) {}
+}
+
+
+function restoreSettings() {
+    try {
+        const raw = localStorage.getItem(SETTINGS_KEY);
+        if (!raw) return;
+
+        const settings = JSON.parse(raw);
+
+        if (settings.fontFamily !== undefined) {
+            document.getElementById("fontFamily").value =
+                settings.fontFamily;
+            changeFont();
+        }
+
+        if (settings.fontSize !== undefined) {
+            document.getElementById("fontSize").value =
+                settings.fontSize;
+            changeFontSize();
+        }
+
+        if (settings.lineHeight !== undefined) {
+            document.getElementById("lineHeight").value =
+                settings.lineHeight;
+            changeLineHeight();
+        }
+
+        if (settings.contentWidth !== undefined) {
+            document.getElementById("contentWidth").value =
+                settings.contentWidth;
+            changeWidth();
+        }
+
+        if (settings.arabicFontSize !== undefined) {
+            document.getElementById("arabicFontSize").value =
+                settings.arabicFontSize;
+            changeArabicFontSize();
+        }
+
+        if (settings.arabicFontFamily !== undefined) {
+            const fontSelect =
+                document.getElementById("arabicFontFamily");
+            const hasOption = Array.from(fontSelect.options)
+                .some(option => option.value === settings.arabicFontFamily);
+            if (hasOption) {
+                fontSelect.value = settings.arabicFontFamily;
+                changeArabicFontFamily();
+            }
+        }
+
+        if (settings.dark) {
+            document.body.classList.add("dark");
+        }
+
+        documentArea.style.setProperty(
+            "--saved-content-width",
+            (settings.contentWidth || 900) + "px"
+        );
+    } catch (e) {}
+}
+
+
+function saveDraft() {
+    try {
+        sessionStorage.setItem(
+            "aiTextCompilerDraft",
+            input.value
+        );
+    } catch (e) {}
+}
+
+
+function isFullscreenRoute() {
+    return window.location.pathname.replace(/\/+$/, "") === "/fullscreen"
+        || window.location.hash === "#fullscreen";
+}
+
+function navigateToRoute(route) {
+    const isFile = window.location.protocol === "file:";
+
+    if (isFile) {
+        window.history.pushState(
+            {},
+            "",
+            route === "/fullscreen" ? "#fullscreen" : "#home"
+        );
+    } else {
+        window.history.pushState(
+            {},
+            "",
+            route + window.location.search
+        );
+    }
+
+    applyRoute();
+}
+
+function goFullscreen() {
+    saveDraft();
+    saveSettings();
+    navigateToRoute("/fullscreen");
+}
+
+function goHome() {
+    saveDraft();
+    saveSettings();
+    navigateToRoute("/");
+}
+
+function toggleFullscreen() {
+    if (isFullscreenRoute()) {
+        goHome();
+    } else {
+        goFullscreen();
+    }
+}
+
+function applyRoute() {
+    const isFullscreen = isFullscreenRoute();
+
+    document.body.classList.toggle("route-fullscreen", isFullscreen);
+
+    const bar = document.getElementById("fullscreenBar");
+    if (bar) {
+        bar.classList.toggle("hidden", !isFullscreen);
+    }
+
+    const btn = document.getElementById("fullscreenBtn");
+    if (btn) {
+        btn.textContent = isFullscreen ? "Exit Fullscreen" : "Fullscreen";
+    }
+
+    compile();
+}
+
+window.addEventListener("popstate", applyRoute);
+window.addEventListener("hashchange", applyRoute);
+
+document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && isFullscreenRoute()) {
+        goHome();
+    }
+});
+
+/* =========================================================
+   AUTO COMPILE
+========================================================= */
+
+let compileTimer;
+
+input.addEventListener(
+    "input",
+    function () {
+
+        clearTimeout(compileTimer);
+
+        compileTimer =
+            setTimeout(compile, 250);
+
+    }
+);
+
+
+/* =========================================================
+   PASTE
+========================================================= */
+
+async function pasteText() {
+
+    try {
+
+        const text =
+            await navigator.clipboard.readText();
+
+        input.value = text;
+
+        compile();
+
+    } catch {
+
+        alert(
+            "Clipboard access was blocked. Use Ctrl + V inside the editor."
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   CLEAR
+========================================================= */
+
+function clearText() {
+
+    input.value = "";
+
+    compile();
+
+}
+
+
+/* =========================================================
+   FONT
+========================================================= */
+
+function changeFont() {
+
+    documentArea.style.fontFamily =
+        document.getElementById("fontFamily").value;
+
+    saveSettings();
+}
+
+
+/* =========================================================
+   FONT SIZE
+========================================================= */
+
+function changeFontSize() {
+
+    const value =
+        document.getElementById("fontSize").value;
+
+    documentArea.style.fontSize =
+        value + "px";
+
+    document.getElementById("fontSizeValue")
+        .textContent =
+        value + "px";
+
+    saveSettings();
+}
+
+
+/* =========================================================
+   LINE HEIGHT
+========================================================= */
+
+function changeLineHeight() {
+
+    const value =
+        document.getElementById("lineHeight").value;
+
+    documentArea.style.lineHeight =
+        value;
+
+    saveSettings();
+}
+
+
+/* =========================================================
+   WIDTH
+========================================================= */
+
+function changeWidth() {
+
+    const value =
+        document.getElementById("contentWidth").value;
+
+    documentArea.style.width =
+        "min(100%, " + value + "px)";
+
+    documentArea.style.setProperty(
+        "--saved-content-width",
+        value + "px"
+    );
+
+    saveSettings();
+}
+
+
+/* =========================================================
+   BOLD
+========================================================= */
+
+function toggleBold() {
+
+    const current =
+        getComputedStyle(documentArea)
+            .fontWeight;
+
+    documentArea.style.fontWeight =
+        current === "400"
+            ? "700"
+            : "400";
+
+    saveSettings();
+}
+
+
+/* =========================================================
+   ITALIC
+========================================================= */
+
+function toggleItalic() {
+
+    const current =
+        getComputedStyle(documentArea)
+            .fontStyle;
+
+    documentArea.style.fontStyle =
+        current === "italic"
+            ? "normal"
+            : "italic";
+
+    saveSettings();
+}
+
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+function toggleDark() {
+
+    document.body.classList.toggle("dark");
+    saveSettings();
+
+}
+
+
+/* =========================================================
+   COPY RENDERED TEXT
+========================================================= */
+
+async function copyRendered() {
+
+    try {
+
+        await navigator.clipboard.writeText(
+            documentArea.innerText
+        );
+
+        status.textContent =
+            "Rendered text copied";
+
+    } catch {
+
+        alert("Copy failed.");
+
+    }
+
+}
+
+
+/* =========================================================
+   DOWNLOAD HTML
+========================================================= */
+
+function downloadHTML() {
+
+    const styles =
+        document.querySelector("style").innerHTML;
+
+
+    const content =
+        documentArea.outerHTML;
+
+
+    const html =
+`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>Compiled AI Document</title>
+
+<style>
+${styles}
+
+body {
+    background: white;
+    padding: 40px;
+}
+
+.document {
+    margin: auto;
+}
+</style>
+
+</head>
+
+<body>
+
+${content}
+
+</body>
+</html>`;
+
+
+    const blob =
+        new Blob(
+            [html],
+            { type: "text/html" }
+        );
+
+
+    const url =
+        URL.createObjectURL(blob);
+
+
+    const a =
+        document.createElement("a");
+
+    a.href = url;
+
+    a.download =
+        "compiled-ai-document.html";
+
+    a.click();
+
+
+    URL.revokeObjectURL(url);
+
+}
+
+
+/* =========================================================
+   INITIAL SAMPLE
+========================================================= */
+
+(function restoreDraftOrSample() {
+
+    let saved = null;
+
+    try {
+        saved =
+            sessionStorage.getItem("aiTextCompilerDraft");
+    } catch (e) {}
+
+    input.value =
+        saved !== null
+            ? saved
+            : `Paste any AI-generated text here.
+`;
+
+    restoreSettings();
+
+    /* Apply the current URL as either / or /fullscreen. */
+    applyRoute();
+
+})();
+
+</script>
+
+</body>
+</html>
