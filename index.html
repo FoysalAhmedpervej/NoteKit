@@ -784,7 +784,80 @@ body.route-fullscreen .fullscreen-bar.hidden {
     }
 }
 
+
+/* =========================================================
+   SCIENTIFIC EQUATIONS
+========================================================= */
+
+.document .math-inline,
+.document .math-display {
+    font-family: "Times New Roman", "STIX Two Math", serif;
+}
+
+.document .math-display {
+    display: block;
+    text-align: center;
+    margin: 1.15em 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 8px;
+}
+
+.document .math-inline {
+    display: inline;
+}
+
+.document mjx-container {
+    max-width: 100%;
+}
+
+.document mjx-container[display="true"] {
+    margin: 1.15em 0 !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.document mjx-container[jax="SVG"] svg {
+    max-width: 100%;
+}
+
+@media print {
+    .document mjx-container[display="true"] {
+        break-inside: avoid;
+    }
+}
+
 </style>
+
+<!-- =========================================================
+     MATHJAX — SCIENTIFIC EQUATION SUPPORT
+     Supports:
+       $$ ... $$              display math
+       $ ... $                inline math
+       \[ ... \]              display math
+       \( ... \)              inline math
+       \begin{equation} ...   equation environments
+========================================================= -->
+<script>
+window.MathJax = {
+    tex: {
+        inlineMath: [['\\(', '\\)'], ['$', '$']],
+        displayMath: [['\\[', '\\]'], ['$$', '$$']],
+        processEscapes: true,
+        processEnvironments: true,
+        tags: 'ams',
+        packages: {'[+]': ['ams']}
+    },
+    options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    svg: {
+        fontCache: 'global'
+    }
+};
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
 </head>
 
 
@@ -1461,19 +1534,117 @@ function renderCompiled(html) {
 
 function parseInline(text) {
 
-    /* Protected pieces (inline code + real HTML tags) are swapped
-       for placeholders so Markdown rules can't damage them. */
+    /*
+       Protect mathematical expressions BEFORE Markdown parsing.
+       This is important because LaTeX contains characters such as
+       _, *, and ^ which would otherwise be interpreted as Markdown.
+    */
 
     const stash = [];
 
     function hold(html) {
         stash.push(html);
-        return "\uE000" + (stash.length - 1) + "\uE001";
+        return "\uE000MATH" + (stash.length - 1) + "MATH\uE001";
     }
 
+    function protectMath(source) {
 
-    /* Inline code first, so tags inside `code` stay as text */
+        /*
+           Order matters:
+           1. $$...$$
+           2. \[...\]
+           3. \(...\)
+           4. equation environments
+           5. single $...$
+        */
 
+        source = source.replace(
+            /\$\$([\s\S]*?)\$\$/g,
+            function (_, math) {
+                return hold(
+                    '<div class="math-display">\\[' +
+                    math +
+                    '\\]</div>'
+                );
+            }
+        );
+
+        source = source.replace(
+            /\\\[([\s\S]*?)\\\]/g,
+            function (_, math) {
+                return hold(
+                    '<div class="math-display">\\[' +
+                    math +
+                    '\\]</div>'
+                );
+            }
+        );
+
+        source = source.replace(
+            /\\\(([\s\S]*?)\\\)/g,
+            function (_, math) {
+                return hold(
+                    '<span class="math-inline">\\(' +
+                    math +
+                    '\\)</span>'
+                );
+            }
+        );
+
+        source = source.replace(
+            /\\begin\{(equation\*?|align\*?|gather\*?|multline\*?)\}([\s\S]*?)\\end\{\1\}/g,
+            function (_, env, math) {
+                return hold(
+                    '<div class="math-display">\\begin{' +
+                    env +
+                    '}' +
+                    math +
+                    '\\end{' +
+                    env +
+                    '}</div>'
+                );
+            }
+        );
+
+        /*
+           Single-dollar inline math.
+           Avoid treating currency such as "$600" as mathematics.
+           A valid expression must have a closing $ and contain
+           no newline.
+        */
+        source = source.replace(
+            /(^|[^\$])\$([^$\n]+?)\$(?!\$)/g,
+            function (_, before, math) {
+                /*
+                   Require at least one mathematical signal so ordinary
+                   dollar amounts are not accidentally converted.
+                */
+                if (
+                    !/[\\^_{}=+\-*/<>]|\\[a-zA-Z]+/.test(math) &&
+                    !/[A-Za-z].*[A-Za-z]/.test(math)
+                ) {
+                    return before + "$" + math + "$";
+                }
+
+                return before + hold(
+                    '<span class="math-inline">\\(' +
+                    math +
+                    '\\)</span>'
+                );
+            }
+        );
+
+        return source;
+    }
+
+    text = protectMath(text);
+
+    /*
+       Protected pieces (math, inline code, and real HTML tags)
+       are swapped for placeholders so Markdown rules cannot damage them.
+    */
+
+    /* Inline code first, but leave protected math untouched. */
     text = text.replace(
         /`([^`]+)`/g,
         function (_, code) {
@@ -1481,9 +1652,7 @@ function parseInline(text) {
         }
     );
 
-
     /* Inline HTML: <b>, <span style="..">, <br>, <img ..>, comments */
-
     text = text.replace(
         new RegExp(HTML_TOKEN_SOURCE, "g"),
         function (token, name) {
@@ -1491,82 +1660,66 @@ function parseInline(text) {
             if (token.startsWith("<!--")) return hold(token);
 
             return isKnownTag(name) ? hold(token) : token;
-
         }
     );
 
-
     text = escapeHTML(text);
 
-
     /* Images */
-
     text = text.replace(
         /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g,
         '<img src="$2" alt="$1" title="$3">'
     );
 
-
     /* Links */
-
     text = text.replace(
         /\[([^\]]+)\]\(([^)]+)\)/g,
         '<a href="$2" target="_blank">$1</a>'
     );
 
-
     /* Bold */
-
     text = text.replace(
         /\*\*(.+?)\*\*/g,
         "<strong>$1</strong>"
     );
-
 
     text = text.replace(
         /__(.+?)__/g,
         "<strong>$1</strong>"
     );
 
-
     /* Italic */
-
     text = text.replace(
         /(?<!\*)\*([^*\n]+)\*(?!\*)/g,
         "<em>$1</em>"
     );
-
 
     text = text.replace(
         /(?<!_)_([^_\n]+)_(?!_)/g,
         "<em>$1</em>"
     );
 
-
     /* Strike */
-
     text = text.replace(
         /~~(.+?)~~/g,
         "<del>$1</del>"
     );
 
-
     /* Restore protected pieces */
-
-    for (let pass = 0; pass < 3 && text.indexOf("\uE000") !== -1; pass++) {
-
+    for (
+        let pass = 0;
+        pass < 5 && text.indexOf("\uE000") !== -1;
+        pass++
+    ) {
         text = text.replace(
-            /\uE000(\d+)\uE001/g,
-            function (_, n) {
+            /\uE000(MATH|)(\d+)(?:MATH)?\uE001/g,
+            function (_, prefix, n) {
                 return stash[Number(n)];
             }
         );
-
     }
 
-
     return text;
-
 }
 
 
@@ -1999,8 +2152,49 @@ function compile() {
         "Compiled • " +
         text.length +
         " characters" +
-        (hasArabic ? " • Arabic detected" : "");
+        (hasArabic ? " • Arabic detected" : "") +
+        " • Math supported";
 
+    typesetMath();
+
+}
+
+
+/* =========================================================
+   MATHJAX TYPESSETTING
+========================================================= */
+
+let mathTypesetTimer = null;
+
+function typesetMath() {
+
+    if (!window.MathJax || !window.MathJax.typesetPromise) {
+        /*
+           MathJax is loaded with defer. If compilation happens before
+           the library finishes loading, retry automatically.
+        */
+        clearTimeout(mathTypesetTimer);
+
+        mathTypesetTimer = setTimeout(
+            typesetMath,
+            100
+        );
+
+        return;
+    }
+
+    /*
+       Remove MathJax's previous generated output before re-typesetting.
+       This prevents duplicate SVG/math output after repeated compiling.
+    */
+    if (window.MathJax.typesetClear) {
+        window.MathJax.typesetClear([documentArea]);
+    }
+
+    window.MathJax.typesetPromise([documentArea])
+        .catch(function (error) {
+            console.error("MathJax typesetting failed:", error);
+        });
 }
 
 
@@ -2588,6 +2782,13 @@ body {
 <body>
 
 ${content}
+
+
+<script>
+if (window.MathJax && window.MathJax.typesetPromise) {
+    window.MathJax.typesetPromise([document.querySelector('.document')]);
+}
+</script>
 
 </body>
 </html>`;
