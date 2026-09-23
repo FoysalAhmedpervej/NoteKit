@@ -1175,7 +1175,7 @@ This is **bold** and *italic*.
         id="fullscreenBar"
         class="fullscreen-bar hidden">
 
-        <button onclick="window.print()">
+        <button onclick="printDocumentt()">
             Print
         </button>
 
@@ -2846,6 +2846,16 @@ if (window.MathJax && window.MathJax.typesetPromise) {
     applyRoute();
 
 })();
+
+window.printDocument = function printDocument() {
+    window.print();
+  };
+
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('button[onclick*="window.print"]').forEach(function (button) {
+      button.onclick = window.printDocument;
+    });
+  });
 
 </script>
 
