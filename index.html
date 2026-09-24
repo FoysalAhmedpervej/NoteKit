@@ -32,6 +32,14 @@
     --quote: #f5f7fa;
     --shadow: 0 8px 25px rgba(0,0,0,.07);
     --arabic-font-family: "Noto Naskh Arabic", "Amiri", "Noto Sans Arabic", sans-serif;
+
+      /* Separate heading font sizes */
+      --h1-size: 36px;
+      --h2-size: 30px;
+      --h3-size: 26px;
+      --h4-size: 22px;
+      --h5-size: 20px;
+      --h6-size: 18px;
 }
 
 * {
@@ -310,39 +318,32 @@ input[type="range"] {
 /* =========================================================
    TYPOGRAPHY
 ========================================================= */
-
-.document h1,
-.document h2,
-.document h3,
-.document h4,
-.document h5,
-.document h6 {
-    line-height: 1.25;
-
-    margin-top: 1.5em;
-    margin-bottom: .6em;
-
-    font-weight: 800;
-}
+/* =========================================================
+   SEPARATE HEADING FONT SIZES
+========================================================= */
 
 .document h1 {
-    font-size: 2em;
+    font-size: var(--h1-size);
 }
 
 .document h2 {
-    font-size: 1.65em;
+    font-size: var(--h2-size);
 }
 
 .document h3 {
-    font-size: 1.4em;
+    font-size: var(--h3-size);
 }
 
 .document h4 {
-    font-size: 1.2em;
+    font-size: var(--h4-size);
 }
 
 .document h5 {
-    font-size: 1.05em;
+    font-size: var(--h5-size);
+}
+
+.document h6 {
+    font-size: var(--h6-size);
 }
 
 .document h6 {
@@ -1015,7 +1016,50 @@ This is **bold** and *italic*.
 
 <div class="toolbar">
 
+<!-- HEADING FONT SIZE CONTROLS -->
 
+<div class="control">
+    <label>H1</label>
+    <input type="number" id="h1Size"
+           min="10" max="100" value="36"
+           onchange="changeHeadingSize('h1')">
+</div>
+
+<div class="control">
+    <label>H2</label>
+    <input type="number" id="h2Size"
+           min="10" max="100" value="30"
+           onchange="changeHeadingSize('h2')">
+</div>
+
+<div class="control">
+    <label>H3</label>
+    <input type="number" id="h3Size"
+           min="10" max="100" value="26"
+           onchange="changeHeadingSize('h3')">
+</div>
+
+<div class="control">
+    <label>H4</label>
+    <input type="number" id="h4Size"
+           min="10" max="100" value="22"
+           onchange="changeHeadingSize('h4')">
+</div>
+
+<div class="control">
+    <label>H5</label>
+    <input type="number" id="h5Size"
+           min="10" max="100" value="20"
+           onchange="changeHeadingSize('h5')">
+</div>
+
+<div class="control">
+    <label>H6</label>
+    <input type="number" id="h6Size"
+           min="10" max="100" value="18"
+           onchange="changeHeadingSize('h6')">
+</div>
+      
     <div class="control">
 
         <label>
@@ -1237,6 +1281,29 @@ This is **bold** and *italic*.
 
 
 <script>
+
+
+      /* =========================================================
+   INDIVIDUAL HEADING FONT SIZE
+========================================================= */
+
+function changeHeadingSize(level) {
+
+    const inputElement =
+        document.getElementById(level + "Size");
+
+    const value =
+        Math.max(10, Math.min(100, Number(inputElement.value)));
+
+    inputElement.value = value;
+
+    documentArea.style.setProperty(
+        "--" + level + "-size",
+        value + "px"
+    );
+
+    saveSettings();
+}
 
 /* =========================================================
    ELEMENTS
@@ -2485,6 +2552,12 @@ const SETTINGS_KEY = "aiTextCompilerSettings";
 function saveSettings() {
     try {
         const settings = {
+              h1Size: document.getElementById("h1Size").value,
+      h2Size: document.getElementById("h2Size").value,
+      h3Size: document.getElementById("h3Size").value,
+      h4Size: document.getElementById("h4Size").value,
+      h5Size: document.getElementById("h5Size").value,
+      h6Size: document.getElementById("h6Size").value,
             fontFamily: document.getElementById("fontFamily").value,
             fontSize: document.getElementById("fontSize").value,
             lineHeight: document.getElementById("lineHeight").value,
@@ -2508,6 +2581,17 @@ function saveSettings() {
 
 
 function restoreSettings() {
+
+      ["h1", "h2", "h3", "h4", "h5", "h6"].forEach(level => {
+
+    const key = level + "Size";
+
+    if (settings[key] !== undefined) {
+        document.getElementById(key).value = settings[key];
+        changeHeadingSize(level);
+    }
+
+});
     try {
         const raw = localStorage.getItem(SETTINGS_KEY);
         if (!raw) return;
