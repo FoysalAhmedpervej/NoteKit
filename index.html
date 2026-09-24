@@ -380,6 +380,36 @@ input[type="range"] {
     border-radius: 6px;
 }
 
+.document .img-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    min-height: 110px;
+
+    margin: 22px auto;
+    padding: 18px;
+
+    background: var(--panel-2);
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+}
+
+.document .img-placeholder-icon {
+    font-size: 26px;
+    opacity: .7;
+}
+
+.document .img-placeholder-text {
+    word-break: break-word;
+}
+
 .document ul,
 .document ol {
     padding-left: 1.7em;
@@ -1529,6 +1559,57 @@ function renderCompiled(html) {
 
 
 /* =========================================================
+   BROKEN IMAGE HANDLING
+   If an <img> (from Markdown ![]() or a raw HTML block) fails
+   to load — wrong URL, offline, or a remote image blocked by
+   the page's security policy — the browser otherwise just
+   leaves an empty box with no visible feedback. This swaps
+   failed images for a visible placeholder instead.
+========================================================= */
+
+function handleBrokenImages(root) {
+
+    root.querySelectorAll("img").forEach(function (img) {
+
+        img.addEventListener("error", function onError() {
+
+            img.removeEventListener("error", onError);
+
+            const placeholder =
+                document.createElement("div");
+
+            placeholder.className = "img-placeholder";
+            placeholder.title = img.getAttribute("src") || "";
+
+            const icon =
+                document.createElement("span");
+
+            icon.className = "img-placeholder-icon";
+            icon.textContent = "🖼️";
+
+            const label =
+                document.createElement("span");
+
+            label.className = "img-placeholder-text";
+            label.textContent =
+                "Image unavailable" +
+                (img.alt ? ": " + img.alt : "");
+
+            placeholder.appendChild(icon);
+            placeholder.appendChild(label);
+
+            if (img.parentNode) {
+                img.parentNode.replaceChild(placeholder, img);
+            }
+
+        }, { once: true });
+
+    });
+
+}
+
+
+/* =========================================================
    INLINE MARKDOWN
 ========================================================= */
 
@@ -1727,13 +1808,44 @@ function parseInline(text) {
    TABLE PARSER
 ========================================================= */
 
+/*
+   A table row is split on "|". But math and inline code can
+   legitimately contain a literal "|" — e.g. $P(A|B)$, a set
+   builder like {x | x>0}, or `a|b` — and that pipe must NOT be
+   treated as a column separator. So before splitting a row,
+   every "|" inside $...$, $$...$$, \(...\), \[...\] or
+   `...` is swapped for a private-use placeholder, and restored
+   again once the row has been split into cells.
+*/
+
+const TABLE_PIPE_PLACEHOLDER = "\uE010";
+
+function protectTablePipes(line) {
+
+    return line.replace(
+        /\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$[^$\n]+?\$|`[^`]+`/g,
+        function (match) {
+            return match.split("|").join(TABLE_PIPE_PLACEHOLDER);
+        }
+    );
+
+}
+
+function splitTableRow(line) {
+
+    return protectTablePipes(line.trim())
+        .split("|")
+        .slice(1, -1)
+        .map(function (cell) {
+            return cell.split(TABLE_PIPE_PLACEHOLDER).join("|");
+        });
+
+}
+
 function parseTable(lines, start) {
 
     const header =
-        lines[start]
-            .trim()
-            .split("|")
-            .slice(1, -1);
+        splitTableRow(lines[start]);
 
     const separator =
         lines[start + 1];
@@ -1770,10 +1882,7 @@ function parseTable(lines, start) {
     ) {
 
         const cells =
-            lines[i]
-                .trim()
-                .split("|")
-                .slice(1, -1);
+            splitTableRow(lines[i]);
 
 
         html += "<tr>";
@@ -2140,6 +2249,8 @@ function compile() {
             ? compileFullDocument(text)
             : compileMarkdown(text)
     );
+
+    handleBrokenImages(documentArea);
 
 
     const hasArabic =
