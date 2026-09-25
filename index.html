@@ -33,13 +33,8 @@
     --shadow: 0 8px 25px rgba(0,0,0,.07);
     --arabic-font-family: "Noto Naskh Arabic", "Amiri", "Noto Sans Arabic", sans-serif;
 
-      /* Separate heading font sizes */
-      --h1-size: 36px;
-      --h2-size: 30px;
-      --h3-size: 26px;
-      --h4-size: 22px;
-      --h5-size: 20px;
-      --h6-size: 18px;
+      /* One shared heading size for H1–H6 */
+      --heading-size: 30px;
 }
 
 * {
@@ -319,108 +314,19 @@ input[type="range"] {
    TYPOGRAPHY
 ========================================================= */
 /* =========================================================
-   SEPARATE HEADING FONT SIZES
+   UNIFIED HEADING FONT SIZE
 ========================================================= */
 
-.document h1 {
-    font-size: var(--h1-size);
-}
-
-.document h2 {
-    font-size: var(--h2-size);
-}
-
-.document h3 {
-    font-size: var(--h3-size);
-}
-
-.document h4 {
-    font-size: var(--h4-size);
-}
-
-.document h5 {
-    font-size: var(--h5-size);
-}
-
+.document h1,
+.document h2,
+.document h3,
+.document h4,
+.document h5,
 .document h6 {
-    font-size: var(--h6-size);
+    font-size: var(--heading-size);
+    line-height: 1.3;
 }
 
-.document h6 {
-    font-size: .95em;
-}
-
-.document p {
-    margin: .8em 0;
-}
-
-.document strong {
-    font-weight: 800;
-}
-
-.document em {
-    font-style: italic;
-}
-
-.document del {
-    opacity: .7;
-}
-
-.document a {
-    color: var(--accent);
-}
-
-.document img {
-    max-width: 100%;
-    height: auto;
-
-    display: block;
-
-    margin: 22px auto;
-
-    border-radius: 6px;
-}
-
-.document .img-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-
-    min-height: 110px;
-
-    margin: 22px auto;
-    padding: 18px;
-
-    background: var(--panel-2);
-    border: 1px dashed var(--border);
-    border-radius: 6px;
-
-    color: var(--muted);
-    font-size: 13px;
-    text-align: center;
-}
-
-.document .img-placeholder-icon {
-    font-size: 26px;
-    opacity: .7;
-}
-
-.document .img-placeholder-text {
-    word-break: break-word;
-}
-
-.document ul,
-.document ol {
-    padding-left: 1.7em;
-
-    margin: .8em 0;
-}
-
-.document li {
-    margin: .25em 0;
-}
 
 /* =========================================================
    BLOCKQUOTE
@@ -827,15 +733,18 @@ body.route-fullscreen .fullscreen-bar.hidden {
 
 .document .math-display {
     display: block;
+    width: 100%;
     text-align: center;
     margin: 1.15em 0;
     overflow-x: auto;
     overflow-y: hidden;
     padding: 2px 8px;
+    font-size: 1em;
 }
 
 .document .math-inline {
     display: inline;
+    white-space: normal;
 }
 
 .document mjx-container {
@@ -843,13 +752,20 @@ body.route-fullscreen .fullscreen-bar.hidden {
 }
 
 .document mjx-container[display="true"] {
+    display: block !important;
+    max-width: 100%;
     margin: 1.15em 0 !important;
     overflow-x: auto;
     overflow-y: hidden;
+    overflow-wrap: normal;
+}
+
+.document mjx-container[jax="SVG"] {
+    max-width: 100%;
 }
 
 .document mjx-container[jax="SVG"] svg {
-    max-width: 100%;
+    max-width: none;
 }
 
 @media print {
@@ -1016,50 +932,17 @@ This is **bold** and *italic*.
 
 <div class="toolbar">
 
-<!-- HEADING FONT SIZE CONTROLS -->
+<!-- UNIFIED HEADING FONT SIZE CONTROL -->
 
-<div class="control">
-    <label>H1</label>
-    <input type="number" id="h1Size"
-           min="10" max="100" value="36"
-           onchange="changeHeadingSize('h1')">
-</div>
+    <div class="control">
+        <label for="headingSize">Headings</label>
+        <input type="number" id="headingSize"
+               min="10" max="100" value="30"
+               onchange="changeHeadingSize()">
+        <span>px</span>
+    </div>
 
-<div class="control">
-    <label>H2</label>
-    <input type="number" id="h2Size"
-           min="10" max="100" value="30"
-           onchange="changeHeadingSize('h2')">
-</div>
 
-<div class="control">
-    <label>H3</label>
-    <input type="number" id="h3Size"
-           min="10" max="100" value="26"
-           onchange="changeHeadingSize('h3')">
-</div>
-
-<div class="control">
-    <label>H4</label>
-    <input type="number" id="h4Size"
-           min="10" max="100" value="22"
-           onchange="changeHeadingSize('h4')">
-</div>
-
-<div class="control">
-    <label>H5</label>
-    <input type="number" id="h5Size"
-           min="10" max="100" value="20"
-           onchange="changeHeadingSize('h5')">
-</div>
-
-<div class="control">
-    <label>H6</label>
-    <input type="number" id="h6Size"
-           min="10" max="100" value="18"
-           onchange="changeHeadingSize('h6')">
-</div>
-      
     <div class="control">
 
         <label>
@@ -1284,26 +1167,17 @@ This is **bold** and *italic*.
 
 
       /* =========================================================
-   INDIVIDUAL HEADING FONT SIZE
+   UNIFIED HEADING FONT SIZE
 ========================================================= */
 
-function changeHeadingSize(level) {
-
-    const inputElement =
-        document.getElementById(level + "Size");
-
-    const value =
-        Math.max(10, Math.min(100, Number(inputElement.value)));
-
+function changeHeadingSize() {
+    const inputElement = document.getElementById("headingSize");
+    const value = Math.max(10, Math.min(100, Number(inputElement.value) || 30));
     inputElement.value = value;
-
-    documentArea.style.setProperty(
-        "--" + level + "-size",
-        value + "px"
-    );
-
+    documentArea.style.setProperty("--heading-size", value + "px");
     saveSettings();
 }
+
 
 /* =========================================================
    ELEMENTS
@@ -1698,6 +1572,17 @@ function parseInline(text) {
     function protectMath(source) {
 
         /*
+           Some AI outputs contain escaped LaTeX delimiters such as
+           \\[ ... \\] or \\( ... \\). Normalize only the
+           delimiter characters so LaTeX commands such as \\alpha are
+           left untouched. This prevents otherwise valid display/inline
+           math from being missed by the delimiter regexes.
+        */
+        source = source
+            .replace(/\\{2,}([\[\]\(\)])/g, "\\$1")
+            .replace(/\\{2,}(begin|end)(?=\{)/g, "\\$1");
+
+        /*
            Order matters:
            1. $$...$$
            2. \[...\]
@@ -1710,9 +1595,9 @@ function parseInline(text) {
             /\$\$([\s\S]*?)\$\$/g,
             function (_, math) {
                 return hold(
-                    '<div class="math-display">\\[' +
+                    '<span class="math-display">\\[' +
                     math +
-                    '\\]</div>'
+                    '\\]</span>'
                 );
             }
         );
@@ -1721,9 +1606,9 @@ function parseInline(text) {
             /\\\[([\s\S]*?)\\\]/g,
             function (_, math) {
                 return hold(
-                    '<div class="math-display">\\[' +
+                    '<span class="math-display">\\[' +
                     math +
-                    '\\]</div>'
+                    '\\]</span>'
                 );
             }
         );
@@ -1743,13 +1628,13 @@ function parseInline(text) {
             /\\begin\{(equation\*?|align\*?|gather\*?|multline\*?)\}([\s\S]*?)\\end\{\1\}/g,
             function (_, env, math) {
                 return hold(
-                    '<div class="math-display">\\begin{' +
+                    '<span class="math-display">\\begin{' +
                     env +
                     '}' +
                     math +
                     '\\end{' +
                     env +
-                    '}</div>'
+                    '}</span>'
                 );
             }
         );
@@ -2343,42 +2228,46 @@ function compile() {
 ========================================================= */
 
 let mathTypesetTimer = null;
+let mathTypesetQueued = false;
+let mathTypesetRunning = false;
 
 function typesetMath() {
 
     if (!window.MathJax || !window.MathJax.typesetPromise) {
-        /*
-           MathJax is loaded with defer. If compilation happens before
-           the library finishes loading, retry automatically.
-        */
         clearTimeout(mathTypesetTimer);
-
-        mathTypesetTimer = setTimeout(
-            typesetMath,
-            100
-        );
-
+        mathTypesetTimer = setTimeout(typesetMath, 150);
         return;
     }
 
-    /*
-       Remove MathJax's previous generated output before re-typesetting.
-       This prevents duplicate SVG/math output after repeated compiling.
-    */
-    if (window.MathJax.typesetClear) {
-        window.MathJax.typesetClear([documentArea]);
+    if (mathTypesetRunning) {
+        mathTypesetQueued = true;
+        return;
     }
 
-    window.MathJax.typesetPromise([documentArea])
-        .catch(function (error) {
+    mathTypesetRunning = true;
+    mathTypesetQueued = false;
+
+    const run = async function () {
+        try {
+            if (window.MathJax.typesetClear) {
+                window.MathJax.typesetClear([documentArea]);
+            }
+            await window.MathJax.typesetPromise([documentArea]);
+        } catch (error) {
             console.error("MathJax typesetting failed:", error);
-        });
+        } finally {
+            mathTypesetRunning = false;
+            if (mathTypesetQueued) requestAnimationFrame(typesetMath);
+        }
+    };
+
+    if (window.MathJax.startup && window.MathJax.startup.promise) {
+        window.MathJax.startup.promise.then(run);
+    } else {
+        run();
+    }
 }
 
-
-/* =========================================================
-   ARABIC DETECTION
-========================================================= */
 
 const ARABIC_CHAR =
     "\\u0600-\\u06FF\\u0750-\\u077F\\u08A0-\\u08FF\\uFB50-\\uFDFF\\uFE70-\\uFEFF";
@@ -2552,12 +2441,7 @@ const SETTINGS_KEY = "aiTextCompilerSettings";
 function saveSettings() {
     try {
         const settings = {
-              h1Size: document.getElementById("h1Size").value,
-      h2Size: document.getElementById("h2Size").value,
-      h3Size: document.getElementById("h3Size").value,
-      h4Size: document.getElementById("h4Size").value,
-      h5Size: document.getElementById("h5Size").value,
-      h6Size: document.getElementById("h6Size").value,
+            headingSize: document.getElementById("headingSize").value,
             fontFamily: document.getElementById("fontFamily").value,
             fontSize: document.getElementById("fontSize").value,
             lineHeight: document.getElementById("lineHeight").value,
@@ -2582,74 +2466,61 @@ function saveSettings() {
 
 function restoreSettings() {
 
-      ["h1", "h2", "h3", "h4", "h5", "h6"].forEach(level => {
-
-    const key = level + "Size";
-
-    if (settings[key] !== undefined) {
-        document.getElementById(key).value = settings[key];
-        changeHeadingSize(level);
-    }
-
-});
     try {
         const raw = localStorage.getItem(SETTINGS_KEY);
         if (!raw) return;
 
         const settings = JSON.parse(raw);
 
+        if (settings.headingSize !== undefined) {
+            document.getElementById("headingSize").value = settings.headingSize;
+            changeHeadingSize();
+        }
+
         if (settings.fontFamily !== undefined) {
-            document.getElementById("fontFamily").value =
-                settings.fontFamily;
+            document.getElementById("fontFamily").value = settings.fontFamily;
             changeFont();
         }
 
         if (settings.fontSize !== undefined) {
-            document.getElementById("fontSize").value =
-                settings.fontSize;
+            document.getElementById("fontSize").value = settings.fontSize;
             changeFontSize();
         }
 
         if (settings.lineHeight !== undefined) {
-            document.getElementById("lineHeight").value =
-                settings.lineHeight;
+            document.getElementById("lineHeight").value = settings.lineHeight;
             changeLineHeight();
         }
 
         if (settings.contentWidth !== undefined) {
-            document.getElementById("contentWidth").value =
-                settings.contentWidth;
+            document.getElementById("contentWidth").value = settings.contentWidth;
             changeWidth();
         }
 
         if (settings.arabicFontSize !== undefined) {
-            document.getElementById("arabicFontSize").value =
-                settings.arabicFontSize;
+            document.getElementById("arabicFontSize").value = settings.arabicFontSize;
             changeArabicFontSize();
         }
 
         if (settings.arabicFontFamily !== undefined) {
-            const fontSelect =
-                document.getElementById("arabicFontFamily");
-            const hasOption = Array.from(fontSelect.options)
-                .some(option => option.value === settings.arabicFontFamily);
-            if (hasOption) {
+            const fontSelect = document.getElementById("arabicFontFamily");
+            if (Array.from(fontSelect.options).some(o => o.value === settings.arabicFontFamily)) {
                 fontSelect.value = settings.arabicFontFamily;
                 changeArabicFontFamily();
             }
         }
 
-        if (settings.dark) {
-            document.body.classList.add("dark");
-        }
+        if (settings.dark) document.body.classList.add("dark");
 
         documentArea.style.setProperty(
             "--saved-content-width",
             (settings.contentWidth || 900) + "px"
         );
-    } catch (e) {}
-}
 
+    } catch (e) {
+        console.warn("Could not restore settings:", e);
+    }
+}
 
 function saveDraft() {
     try {
